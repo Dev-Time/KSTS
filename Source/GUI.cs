@@ -264,6 +264,7 @@ namespace KSTS
                             if (!File.Exists(thumbFile))
                             {
                                 Log.Info("Missing Thumbfile: " + thumbFile);
+                                MissionController.SanitizeSavedVessel(craftFile);
                                 ShipConstruct ship = ShipConstruction.LoadShip(craftFile);
                                 ThumbnailHelper.CaptureThumbnail(ship, 256, "thumbs/", HighLogic.SaveFolder + "_" + editorFacility + "_" + validFileName);
                             }

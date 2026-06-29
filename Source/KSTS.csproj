@@ -127,7 +127,7 @@ if $(ConfigurationName) == Release (
 </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent>"$(DevEnvDir)\texttransform.exe" "$(ProjectDir)AssemblyVersion.tt"</PreBuildEvent>
+
   </PropertyGroup>
   <!--<PropertyGroup>
     <PostBuildEvent>copy /Y "$(TargetPath)" "D:\KSP\KSTS\GameData\KSTS\$(TargetFileName)" &amp;&amp; copy /Y "$(TargetPath)" "D:\KSP\KSP\GameData\KSTS\$(TargetFileName)" &amp;&amp; copy /Y "D:\KSP\KSTS\GameData\KSTS\*" "D:\KSP\KSP\GameData\KSTS\"</PostBuildEvent>
