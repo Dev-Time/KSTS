@@ -518,8 +518,12 @@ namespace KSTS
                     throw new Exception("file '" + shipTemplateFilename + "' not found");
                 }
 
-                SanitizeSavedVessel(shipTemplateFilename);
-                var shipConstruct = ShipConstruction.LoadShip(shipTemplateFilename);
+                string loadPath = SanitizeSavedVessel(shipTemplateFilename);
+                var shipConstruct = ShipConstruction.LoadShip(loadPath);
+                if (loadPath != shipTemplateFilename && loadPath.EndsWith(".tmp"))
+                {
+                    File.Delete(loadPath);
+                }
 
                 // Maybe adjust the orbit:
                 var vesselHeight = Math.Max(Math.Max(shipConstruct.shipSize.x, shipConstruct.shipSize.y), shipConstruct.shipSize.z);
@@ -566,12 +570,12 @@ namespace KSTS
 
 
 
-        public static void SanitizeSavedVessel(string shipTemplateFilename)
+        public static string SanitizeSavedVessel(string shipTemplateFilename)
         {
             try
             {
                 ConfigNode vesselNode = ConfigNode.Load(shipTemplateFilename);
-                if (vesselNode == null) return;
+                if (vesselNode == null) return shipTemplateFilename;
 
                 bool modified = false;
                 foreach (ConfigNode partNode in vesselNode.GetNodes("PART"))
@@ -607,13 +611,16 @@ namespace KSTS
                 }
                 if (modified)
                 {
-                    vesselNode.Save(shipTemplateFilename);
+                    string tmpFile = shipTemplateFilename + ".tmp";
+                    vesselNode.Save(tmpFile);
+                    return tmpFile;
                 }
             }
             catch (Exception e)
             {
                 Debug.LogError("SanitizeSavedVessel(): " + e.ToString());
             }
+            return shipTemplateFilename;
         }
 
         private static readonly HashSet<Guid> TrackedVessels = new HashSet<Guid>();
