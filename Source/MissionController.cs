@@ -518,6 +518,7 @@ namespace KSTS
                     throw new Exception("file '" + shipTemplateFilename + "' not found");
                 }
 
+                SanitizeSavedVessel(shipTemplateFilename);
                 var shipConstruct = ShipConstruction.LoadShip(shipTemplateFilename);
 
                 // Maybe adjust the orbit:
@@ -560,6 +561,58 @@ namespace KSTS
             catch (Exception e)
             {
                 Debug.LogError("Mission.CreateShip(): " + e);
+            }
+        }
+
+
+
+        public static void SanitizeSavedVessel(string shipTemplateFilename)
+        {
+            try
+            {
+                ConfigNode vesselNode = ConfigNode.Load(shipTemplateFilename);
+                if (vesselNode == null) return;
+
+                bool modified = false;
+                foreach (ConfigNode partNode in vesselNode.GetNodes("PART"))
+                {
+                    string partName = partNode.GetValue("part");
+                    if (partName != null) {
+                        partName = Regex.Replace(partName, "_[0-9A-Fa-f]+$", "");
+                    } else {
+                        partName = partNode.GetValue("name");
+                        if (partName != null) {
+                           partName = Regex.Replace(partName, "_[0-9A-Fa-f]+$", "");
+                        }
+                    }
+
+                    if (partName == null || !KSTS.partDictionary.ContainsKey(partName)) continue;
+                    AvailablePart prefab = KSTS.partDictionary[partName];
+
+                    List<ConfigNode> modulesToRemove = new List<ConfigNode>();
+                    foreach (ConfigNode moduleNode in partNode.GetNodes("MODULE"))
+                    {
+                        string moduleName = moduleNode.GetValue("name");
+                        if (moduleName != null && !prefab.partPrefab.Modules.Contains(moduleName))
+                        {
+                            modulesToRemove.Add(moduleNode);
+                            Debug.LogWarning("[KSTS] Stripping obsolete module " + moduleName + " from part " + partName);
+                        }
+                    }
+                    foreach (var obsolete in modulesToRemove)
+                    {
+                        partNode.RemoveNode(obsolete);
+                        modified = true;
+                    }
+                }
+                if (modified)
+                {
+                    vesselNode.Save(shipTemplateFilename);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("SanitizeSavedVessel(): " + e.ToString());
             }
         }
 
