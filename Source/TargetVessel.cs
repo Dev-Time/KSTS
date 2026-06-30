@@ -131,18 +131,19 @@ namespace KSTS
 				if (!KSTS.partDictionary.TryGetValue(protoPart.partName, out part)) continue;
 				
                 int partCrewCapacity = part.partPrefab.CrewCapacity;
-                int moduleIdx = 0;
                 foreach (ProtoPartModuleSnapshot module in protoPart.modules)
                 {
-                    if (module.moduleName == "USIAnimation" && module.moduleValues.GetValue("isDeployed") == "True")
+                    if (part.partPrefab.Modules.Contains(module.moduleName))
                     {
-                        partCrewCapacity = part.partPrefab.Modules.GetModule(moduleIdx).Fields.GetValue<int>("CrewCapacity");
+                        if (module.moduleName == "USIAnimation" && module.moduleValues.GetValue("isDeployed") == "True")
+                        {
+                            partCrewCapacity = part.partPrefab.Modules[module.moduleName].Fields.GetValue<int>("CrewCapacity");
+                        }
+                        if ((module.moduleName == "ModuleDeployableCentrifuge" || module.moduleName == "ModuleDeployableHabitat") && module.moduleValues.GetValue("Deployed") == "True")
+                        {
+                            partCrewCapacity = part.partPrefab.Modules[module.moduleName].Fields.GetValue<int>("DeployedCrewCapacity");
+                        }
                     }
-                    if ((module.moduleName == "ModuleDeployableCentrifuge" || module.moduleName == "ModuleDeployableHabitat") && module.moduleValues.GetValue("Deployed") == "True")
-                    {
-                        partCrewCapacity = part.partPrefab.Modules.GetModule(moduleIdx).Fields.GetValue<int>("DeployedCrewCapacity");
-                    }
-                    moduleIdx++;
                 }
                 
                 capacity += partCrewCapacity;

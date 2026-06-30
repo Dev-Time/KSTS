@@ -518,7 +518,12 @@ namespace KSTS
                     throw new Exception("file '" + shipTemplateFilename + "' not found");
                 }
 
-                var shipConstruct = ShipConstruction.LoadShip(shipTemplateFilename);
+                string loadPath = SanitizeSavedVessel(shipTemplateFilename);
+                var shipConstruct = ShipConstruction.LoadShip(loadPath);
+                if (loadPath != shipTemplateFilename && loadPath.EndsWith(".tmp"))
+                {
+                    File.Delete(loadPath);
+                }
 
                 // Maybe adjust the orbit:
                 var vesselHeight = Math.Max(Math.Max(shipConstruct.shipSize.x, shipConstruct.shipSize.y), shipConstruct.shipSize.z);
@@ -561,6 +566,61 @@ namespace KSTS
             {
                 Debug.LogError("Mission.CreateShip(): " + e);
             }
+        }
+
+
+
+        public static string SanitizeSavedVessel(string shipTemplateFilename)
+        {
+            try
+            {
+                ConfigNode vesselNode = ConfigNode.Load(shipTemplateFilename);
+                if (vesselNode == null) return shipTemplateFilename;
+
+                bool modified = false;
+                foreach (ConfigNode partNode in vesselNode.GetNodes("PART"))
+                {
+                    string partName = partNode.GetValue("part");
+                    if (partName != null) {
+                        partName = Regex.Replace(partName, "_[0-9A-Fa-f]+$", "");
+                    } else {
+                        partName = partNode.GetValue("name");
+                        if (partName != null) {
+                           partName = Regex.Replace(partName, "_[0-9A-Fa-f]+$", "");
+                        }
+                    }
+
+                    if (partName == null || !KSTS.partDictionary.ContainsKey(partName)) continue;
+                    AvailablePart prefab = KSTS.partDictionary[partName];
+
+                    List<ConfigNode> modulesToRemove = new List<ConfigNode>();
+                    foreach (ConfigNode moduleNode in partNode.GetNodes("MODULE"))
+                    {
+                        string moduleName = moduleNode.GetValue("name");
+                        if (moduleName != null && !prefab.partPrefab.Modules.Contains(moduleName))
+                        {
+                            modulesToRemove.Add(moduleNode);
+                            Debug.LogWarning("[KSTS] Stripping obsolete module " + moduleName + " from part " + partName);
+                        }
+                    }
+                    foreach (var obsolete in modulesToRemove)
+                    {
+                        partNode.RemoveNode(obsolete);
+                        modified = true;
+                    }
+                }
+                if (modified)
+                {
+                    string tmpFile = shipTemplateFilename + ".tmp";
+                    vesselNode.Save(tmpFile);
+                    return tmpFile;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("SanitizeSavedVessel(): " + e.ToString());
+            }
+            return shipTemplateFilename;
         }
 
         private static readonly HashSet<Guid> TrackedVessels = new HashSet<Guid>();
