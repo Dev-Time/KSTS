@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using UnityEngine;
-using System.Reflection;
 using System.Collections.Generic;
 using StageRecovery;
 
@@ -99,7 +98,7 @@ namespace KSTS
     }
 
     [KSPAddon(KSPAddon.Startup.SpaceCentre, true)]
-    public class KSTS : UnityEngine.MonoBehaviour
+    public class KSTS : MonoBehaviour
     {
         private static bool initialized = false;
         public static Dictionary<string, AvailablePart> partDictionary = null;
@@ -111,6 +110,7 @@ namespace KSTS
         // of original-stats library).
         public void Awake()
         {
+			DontDestroyOnLoad(this.gameObject);
             try
             {
                 FlightRecorder.Initialize();
@@ -304,6 +304,13 @@ namespace KSTS
             Log.Warning("KSTS: OnLoad");
             try
             {
+                if(GUI.currentSaveFolder != HighLogic.SaveFolder)
+                {
+                    GUI.Reset();
+                    GUI.currentSaveFolder = HighLogic.SaveFolder;
+                    Debug.Log("[KSTS] Switched to new save: " + GUI.currentSaveFolder);
+                }
+                GUI.UpdateVesselTemplates();
                 FlightRecorder.LoadRecordings(node);
                 MissionController.LoadMissions(node);
 
@@ -311,8 +318,6 @@ namespace KSTS
                     MissionController.useKACifAvailable = bool.Parse(node.GetValue("useKACifAvailable"));
                 if (node.HasValue("useStockAlarmClock"))
                     MissionController.useStockAlarmClock = bool.Parse(node.GetValue("useStockAlarmClock"));
-
-                GUI.Reset();
             }
             catch (Exception e)
             {
